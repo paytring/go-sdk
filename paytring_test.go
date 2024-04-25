@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var apiKey = "test_123"
-var apiSecret = "secret_123"
+var apiKey = "test_key"
+var apiSecret = "test_secret"
 
 func TestCreateOrder(t *testing.T) {
 
@@ -20,12 +20,12 @@ func TestCreateOrder(t *testing.T) {
 		Email: "john.doe@example.com",
 		Phone: "1234567890",
 	}
-	options := Options{
-		"currency": "USD",
+	paymentConfig := PaymentConfig{
+		Currency: "INR",
 	}
 
 	paytring := NewClient(apiKey, apiSecret)
-	resp, err := paytring.CreateOrder(amount, receiptID, callbackURL, customer, options)
+	resp, err := paytring.CreateOrder(amount, receiptID, callbackURL, customer, paymentConfig)
 	fmt.Println(resp)
 	assert.NoError(t, err)
 
@@ -56,7 +56,7 @@ func TestMakeHash(t *testing.T) {
 		"receipt_id":   "TEST123",
 	}
 
-	expectedHash := "10fb30b4375b834dea1153b9c501c175ad6cfd9944fa994341adefb0ddb46d9ac185abd58f7065734d7199410cd86b90eb3698aaec905bcefd7405c0d122261d"
+	expectedHash := "b7c0e8c6896f7a07200eed32578f15b42751aac6da9fa66c7d784fbbcc0f943d811c6eaecf1ee2aa6aa57e868803c3051cf611375890e3d57eeafc6d48e7c150"
 
 	resp := client.MakeHash(params)
 
