@@ -271,7 +271,13 @@ func (c *Api) FetchOrder(orderId string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	return bodyMap, nil
+	response, err := c.HandleResponse(bodyMap)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
 
 func (c *Api) MakeHash(params map[string]interface{}) map[string]interface{} {
