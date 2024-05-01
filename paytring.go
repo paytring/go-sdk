@@ -15,7 +15,7 @@ func NewClient(apiKey string, apiSecret string) *Api {
 	return &Api{
 		ApiKey:    apiKey,
 		ApiSecret: apiSecret,
-		ApiUrl:    "http://localhost:8000/api/v1/",
+		ApiUrl:    "https://api.paytring.com/api/v1/",
 	}
 }
 
@@ -86,6 +86,15 @@ type Tpv struct {
 	Ifsc          string
 }
 
+type PaymentData struct {
+	Vpa         string
+	CardNumber  string
+	ExpiryMonth string
+	ExpiryYear  string
+	Cvv         string
+	HolderName  string
+}
+
 func (c *Api) CreateOrder(
 	amount int64,
 	receiptId string,
@@ -137,7 +146,7 @@ func (c *Api) CreateOrder(
 	}
 
 	if paymentConfig.Pg != "" {
-		requestBody["pg_pool_id"] = paymentConfig.Pg
+		requestBody["pg"] = paymentConfig.Pg
 	}
 
 	if !paymentConfig.AutoCapture {
@@ -280,6 +289,44 @@ func (c *Api) FetchOrder(orderId string) (map[string]interface{}, error) {
 	return response, nil
 }
 
+func (c *Api) FetchOrderByReceipt(receiptId string) (map[string]interface{}, error) {
+
+	client := request.New()
+
+	requestBody := map[string]interface{}{
+		"key": c.ApiKey,
+		"id":  receiptId,
+	}
+
+	body, err := json.Marshal(c.MakeHash(requestBody))
+	if err != nil {
+		print(err)
+	}
+
+	resp, err := client.WithHeaders(map[string]string{
+		"Content-Type": "application/json",
+	}).WithBody(body).Post(c.ApiUrl + "order/fetch/receipt")
+
+	if err != nil {
+		print(err)
+		return nil, err
+	}
+
+	bodyMap, err := resp.BodyMap()
+	if err != nil {
+		print(err)
+		return nil, err
+	}
+
+	response, err := c.HandleResponse(bodyMap)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
 func (c *Api) ValidateVPA(vpa string) (map[string]interface{}, error) {
 
 	client := request.New()
@@ -335,6 +382,73 @@ func (c *Api) ValidateCard(bin string) (map[string]interface{}, error) {
 	resp, err := client.WithHeaders(map[string]string{
 		"Content-Type": "application/json",
 	}).WithBody(body).Post(c.ApiUrl + "info/bin")
+
+	if err != nil {
+		print(err)
+		return nil, err
+	}
+
+	bodyMap, err := resp.BodyMap()
+	if err != nil {
+		print(err)
+		return nil, err
+	}
+
+	response, err := c.HandleResponse(bodyMap)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (c *Api) ProcessOrder(orderId string, paymentMethod string, paymentCode string, paymentData PaymentData, device string) (map[string]interface{}, error) {
+
+	client := request.New()
+
+	requestBody := map[string]interface{}{
+		"key":      c.ApiKey,
+		"order_id": orderId,
+		"method":   paymentMethod,
+		"code":     paymentCode,
+	}
+
+	if device != "" {
+		requestBody["device"] = device
+	}
+
+	if paymentMethod == "upi" {
+		if paymentCode == "collect" {
+			if paymentData.Vpa == "" {
+				return nil, fmt.Errorf("VPA is required for UPI collect")
+			}
+			requestBody["vpa"] = paymentData.Vpa
+		}
+	}
+
+	if paymentMethod == "card" {
+		errInValidatingPaymentDataForCard := validatePaymentDataForCard(paymentData)
+		if errInValidatingPaymentDataForCard != nil {
+			return nil, errInValidatingPaymentDataForCard
+		}
+		requestBody["card"] = map[string]interface{}{
+			"holder_name":  paymentData.HolderName,
+			"number":       paymentData.CardNumber,
+			"expiry_month": paymentData.ExpiryMonth,
+			"expiry_year":  paymentData.ExpiryYear,
+			"cvv":          paymentData.Cvv,
+		}
+	}
+
+	body, err := json.Marshal(c.MakeHash(requestBody))
+	if err != nil {
+		print(err)
+	}
+
+	resp, err := client.WithHeaders(map[string]string{
+		"Content-Type": "application/json",
+	}).WithBody(body).Post(c.ApiUrl + "order/process")
 
 	if err != nil {
 		print(err)
@@ -439,4 +553,20 @@ func extractErrorMessage(errors interface{}) string {
 	}
 
 	return "Something went wrong, please try again later."
+}
+
+func validatePaymentDataForCard(paymentData PaymentData) error {
+	if paymentData.CardNumber == "" {
+		return fmt.Errorf("card number is required")
+	}
+	if paymentData.ExpiryMonth == "" {
+		return fmt.Errorf("expiry month is required")
+	}
+	if paymentData.ExpiryYear == "" {
+		return fmt.Errorf("expiry year is required")
+	}
+	if paymentData.Cvv == "" {
+		return fmt.Errorf("CVV is required")
+	}
+	return nil
 }
