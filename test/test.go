@@ -52,6 +52,11 @@ func main() {
 			Name:          "John Doe",
 			Ifsc:          "IFSC1234",
 		},
+		{
+			AccountNumber: "9898989898",
+			Name:          "John Vick",
+			Ifsc:          "IFSC12345",
+		},
 	}
 
 	notes := paytring.Notes{
@@ -62,18 +67,18 @@ func main() {
 		Udf5: "udf5",
 	}
 
-	// splitSettlement := paytring.SplitSettlement{
-	// 	SplitType: "percentage",
-	// 	SplitRule: []paytring.SplitRule{
-	// 		{
-	// 			VendorId: "sub_merchant_id",
-	// 			Amount:   50,
-	// 		},
-	// 	},
-	// }
+	splitSettlement := paytring.SplitSettlement{
+		SplitType: "percent",
+		SplitRule: []paytring.SplitRule{
+			{
+				VendorId: "sub_merchant_id",
+				Amount:   50,
+			},
+		},
+	}
 
 	paytring := paytring.NewClient(apiKey, apiSecret)
-	orderCreateResponse, errOrderCreate := paytring.CreateOrder(amount, receiptID, callbackURL, customer, paymentConfig, billingAddress, shippingAddress, notes, tpv)
+	orderCreateResponse, errOrderCreate := paytring.CreateOrder(amount, receiptID, callbackURL, customer, paymentConfig, billingAddress, shippingAddress, notes, tpv, splitSettlement)
 	if errOrderCreate != nil {
 		fmt.Println(errOrderCreate)
 		return

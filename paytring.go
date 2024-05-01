@@ -184,9 +184,17 @@ func (c *Api) CreateOrder(
 		tpvMapMap = append(tpvMapMap, tpvMap)
 	}
 
-	splitSettlementMap := make(map[string]interface{})
-	addToMapIfNotBlank(splitSettlementMap, "split_type", splitSettlement.SplitType)
-	addToMapIfNotBlank(splitSettlementMap, "split_rule", splitSettlement.SplitRule)
+	if splitSettlement.SplitType != "" {
+		requestBody["split_type"] = splitSettlement.SplitType
+	}
+
+	var splitSettlementMap []map[string]interface{}
+	for _, splitRule := range splitSettlement.SplitRule {
+		var splitSettlementRuleMap = make(map[string]interface{})
+		addToMapIfNotBlank(splitSettlementRuleMap, "vendor_id", splitRule.VendorId)
+		addToMapIfNotBlank(splitSettlementRuleMap, "amount", splitRule.Amount)
+		splitSettlementMap = append(splitSettlementMap, splitSettlementRuleMap)
+	}
 
 	if len(splitSettlementMap) > 0 {
 		requestBody["split_settlement"] = splitSettlementMap
