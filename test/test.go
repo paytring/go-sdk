@@ -78,12 +78,28 @@ func main() {
 	}
 
 	paytring := paytring.NewClient(apiKey, apiSecret)
+
+	validateVPAResponse, errValidateVPA := paytring.ValidateVPA("7027445661@paytm")
+	if errValidateVPA != nil {
+		fmt.Println(errValidateVPA)
+		return
+	}
+	fmt.Println(validateVPAResponse)
+
+	validateCardBinResponse, errValidateCardBin := paytring.ValidateCard("424242")
+	if errValidateCardBin != nil {
+		fmt.Println(errValidateCardBin)
+		return
+	}
+	fmt.Println(validateCardBinResponse)
+
 	orderCreateResponse, errOrderCreate := paytring.CreateOrder(amount, receiptID, callbackURL, customer, paymentConfig, billingAddress, shippingAddress, notes, tpv, splitSettlement)
 	if errOrderCreate != nil {
 		fmt.Println(errOrderCreate)
 		return
 	}
 	fmt.Println(orderCreateResponse)
+
 	fetchOrderResponse, errFetchOrder := paytring.FetchOrder(orderCreateResponse["order_id"].(string))
 	if errFetchOrder != nil {
 		fmt.Println(errFetchOrder)

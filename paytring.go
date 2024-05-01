@@ -15,7 +15,7 @@ func NewClient(apiKey string, apiSecret string) *Api {
 	return &Api{
 		ApiKey:    apiKey,
 		ApiSecret: apiSecret,
-		ApiUrl:    "https://api.paytring.com/api/v1/",
+		ApiUrl:    "http://localhost:8000/api/v1/",
 	}
 }
 
@@ -259,6 +259,82 @@ func (c *Api) FetchOrder(orderId string) (map[string]interface{}, error) {
 	resp, err := client.WithHeaders(map[string]string{
 		"Content-Type": "application/json",
 	}).WithBody(body).Post(c.ApiUrl + "order/fetch")
+
+	if err != nil {
+		print(err)
+		return nil, err
+	}
+
+	bodyMap, err := resp.BodyMap()
+	if err != nil {
+		print(err)
+		return nil, err
+	}
+
+	response, err := c.HandleResponse(bodyMap)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (c *Api) ValidateVPA(vpa string) (map[string]interface{}, error) {
+
+	client := request.New()
+
+	requestBody := map[string]interface{}{
+		"key": c.ApiKey,
+		"vpa": vpa,
+	}
+
+	body, err := json.Marshal(c.MakeHash(requestBody))
+	if err != nil {
+		print(err)
+	}
+
+	resp, err := client.WithHeaders(map[string]string{
+		"Content-Type": "application/json",
+	}).WithBody(body).Post(c.ApiUrl + "info/vpa")
+
+	if err != nil {
+		print(err)
+		return nil, err
+	}
+
+	bodyMap, err := resp.BodyMap()
+	if err != nil {
+		print(err)
+		return nil, err
+	}
+
+	response, err := c.HandleResponse(bodyMap)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (c *Api) ValidateCard(bin string) (map[string]interface{}, error) {
+
+	client := request.New()
+
+	requestBody := map[string]interface{}{
+		"key": c.ApiKey,
+		"bin": bin,
+	}
+
+	body, err := json.Marshal(c.MakeHash(requestBody))
+	if err != nil {
+		print(err)
+	}
+
+	resp, err := client.WithHeaders(map[string]string{
+		"Content-Type": "application/json",
+	}).WithBody(body).Post(c.ApiUrl + "info/bin")
 
 	if err != nil {
 		print(err)
