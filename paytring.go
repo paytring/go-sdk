@@ -2,6 +2,7 @@ package paytring
 
 import (
 	"crypto/sha512"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -15,7 +16,7 @@ func NewClient(apiKey string, apiSecret string) *Api {
 	return &Api{
 		ApiKey:    apiKey,
 		ApiSecret: apiSecret,
-		ApiUrl:    "https://api.paytring.com/api/v1/",
+		ApiUrl:    "https://api.paytring.com/api/",
 	}
 }
 
@@ -221,15 +222,16 @@ func (c *Api) CreateOrder(
 		requestBody["tpv"] = tpvMapMap
 	}
 
-	body, err := json.Marshal(c.MakeHash(requestBody))
+	requestBody["hash"] = "none"
+
+	body, err := json.Marshal(requestBody)
 	if err != nil {
 		print(err)
 		return nil, err
 	}
 
-	resp, err := client.WithHeaders(map[string]string{
-		"Content-Type": "application/json",
-	}).WithBody(body).Post(c.ApiUrl + "order/create")
+	resp, err := client.WithHeaders(c.MakeAuthHeader()).
+		WithBody(body).Post(c.ApiUrl + "v2/order/create")
 
 	if err != nil {
 		print(err)
@@ -256,18 +258,18 @@ func (c *Api) FetchOrder(orderId string) (map[string]interface{}, error) {
 	client := request.New()
 
 	requestBody := map[string]interface{}{
-		"key": c.ApiKey,
-		"id":  orderId,
+		"key":  c.ApiKey,
+		"id":   orderId,
+		"hash": "none",
 	}
 
-	body, err := json.Marshal(c.MakeHash(requestBody))
+	body, err := json.Marshal(requestBody)
 	if err != nil {
 		print(err)
 	}
 
-	resp, err := client.WithHeaders(map[string]string{
-		"Content-Type": "application/json",
-	}).WithBody(body).Post(c.ApiUrl + "order/fetch")
+	resp, err := client.WithHeaders(c.MakeAuthHeader()).
+		WithBody(body).Post(c.ApiUrl + "v2/order/fetch")
 
 	if err != nil {
 		print(err)
@@ -303,9 +305,8 @@ func (c *Api) FetchOrderByReceipt(receiptId string) (map[string]interface{}, err
 		print(err)
 	}
 
-	resp, err := client.WithHeaders(map[string]string{
-		"Content-Type": "application/json",
-	}).WithBody(body).Post(c.ApiUrl + "order/fetch/receipt")
+	resp, err := client.WithHeaders(c.MakeAuthHeader()).
+		WithBody(body).Post(c.ApiUrl + "v2/order/fetch/receipt")
 
 	if err != nil {
 		print(err)
@@ -327,6 +328,17 @@ func (c *Api) FetchOrderByReceipt(receiptId string) (map[string]interface{}, err
 	return response, nil
 }
 
+func (c *Api) MakeAuthHeader() map[string]string {
+
+	authString := c.ApiKey + ":" + c.ApiSecret
+	authString = base64.StdEncoding.EncodeToString([]byte(authString))
+
+	return map[string]string{
+		"Content-Type":  "application/json",
+		"Authorization": "Basic " + authString,
+	}
+}
+
 func (c *Api) ValidateVPA(vpa string) (map[string]interface{}, error) {
 
 	client := request.New()
@@ -341,9 +353,7 @@ func (c *Api) ValidateVPA(vpa string) (map[string]interface{}, error) {
 		print(err)
 	}
 
-	resp, err := client.WithHeaders(map[string]string{
-		"Content-Type": "application/json",
-	}).WithBody(body).Post(c.ApiUrl + "info/vpa")
+	resp, err := client.WithHeaders(c.MakeAuthHeader()).WithBody(body).Post(c.ApiUrl + "v1/info/vpa")
 
 	if err != nil {
 		print(err)
@@ -379,9 +389,7 @@ func (c *Api) ValidateCard(bin string) (map[string]interface{}, error) {
 		print(err)
 	}
 
-	resp, err := client.WithHeaders(map[string]string{
-		"Content-Type": "application/json",
-	}).WithBody(body).Post(c.ApiUrl + "info/bin")
+	resp, err := client.WithHeaders(c.MakeAuthHeader()).WithBody(body).Post(c.ApiUrl + "v1/info/bin")
 
 	if err != nil {
 		print(err)
@@ -448,7 +456,7 @@ func (c *Api) ProcessOrder(orderId string, paymentMethod string, paymentCode str
 
 	resp, err := client.WithHeaders(map[string]string{
 		"Content-Type": "application/json",
-	}).WithBody(body).Post(c.ApiUrl + "order/process")
+	}).WithBody(body).Post(c.ApiUrl + "v1/order/process")
 
 	if err != nil {
 		print(err)
@@ -470,6 +478,7 @@ func (c *Api) ProcessOrder(orderId string, paymentMethod string, paymentCode str
 	return response, nil
 }
 
+// only applicable for v2 apis
 func (c *Api) MakeHash(params map[string]interface{}) map[string]interface{} {
 
 	valueString := ""

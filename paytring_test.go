@@ -34,7 +34,7 @@ func TestCreateOrder(t *testing.T) {
 func TestFetchOrder(t *testing.T) {
 
 	paytring := NewClient(apiKey, apiSecret)
-	resp, err := paytring.FetchOrder("TEST123")
+	resp, err := paytring.FetchOrder("503279383566355092")
 	if resp["status"] != false {
 		assert.True(t, true)
 	}
