@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strconv"
 
-	request "github.com/dagar-in/http-client"
+	"github.com/go-resty/resty/v2"
 )
 
 func NewClient(apiKey string, apiSecret string) *Api {
@@ -17,6 +17,7 @@ func NewClient(apiKey string, apiSecret string) *Api {
 		ApiKey:    apiKey,
 		ApiSecret: apiSecret,
 		ApiUrl:    "https://api.paytring.com/api/",
+		UserAgent: "paytring-go-sdk/0",
 	}
 }
 
@@ -24,6 +25,7 @@ type Api struct {
 	ApiKey    string
 	ApiSecret string
 	ApiUrl    string
+	UserAgent string
 }
 
 type Customer struct {
@@ -128,7 +130,7 @@ func (c *Api) CreateOrder(
 		}
 	}
 
-	client := request.New()
+	client := resty.New()
 
 	requestBody := map[string]interface{}{
 		"key":          c.ApiKey,
@@ -230,15 +232,18 @@ func (c *Api) CreateOrder(
 		return nil, err
 	}
 
-	resp, err := client.WithHeaders(c.MakeAuthHeader()).
-		WithBody(body).Post(c.ApiUrl + "v2/order/create")
+	resp, err := client.R().
+		SetHeaders(c.MakeAuthHeader()).
+		SetBody(body).
+		Post(c.ApiUrl + "v2/order/create")
 
 	if err != nil {
 		print(err)
 		return nil, err
 	}
 
-	bodyMap, err := resp.BodyMap()
+	var bodyMap map[string]interface{}
+	err = json.Unmarshal(resp.Body(), &bodyMap)
 	if err != nil {
 		print(err)
 		return nil, err
@@ -255,7 +260,7 @@ func (c *Api) CreateOrder(
 
 func (c *Api) FetchOrder(orderId string) (map[string]interface{}, error) {
 
-	client := request.New()
+	client := resty.New()
 
 	requestBody := map[string]interface{}{
 		"key":  c.ApiKey,
@@ -268,15 +273,18 @@ func (c *Api) FetchOrder(orderId string) (map[string]interface{}, error) {
 		print(err)
 	}
 
-	resp, err := client.WithHeaders(c.MakeAuthHeader()).
-		WithBody(body).Post(c.ApiUrl + "v2/order/fetch")
+	resp, err := client.R().
+		SetHeaders(c.MakeAuthHeader()).
+		SetBody(body).
+		Post(c.ApiUrl + "v2/order/fetch")
 
 	if err != nil {
 		print(err)
 		return nil, err
 	}
 
-	bodyMap, err := resp.BodyMap()
+	var bodyMap map[string]interface{}
+	err = json.Unmarshal(resp.Body(), &bodyMap)
 	if err != nil {
 		print(err)
 		return nil, err
@@ -293,7 +301,7 @@ func (c *Api) FetchOrder(orderId string) (map[string]interface{}, error) {
 
 func (c *Api) FetchOrderByReceipt(receiptId string) (map[string]interface{}, error) {
 
-	client := request.New()
+	client := resty.New()
 
 	requestBody := map[string]interface{}{
 		"key": c.ApiKey,
@@ -305,15 +313,18 @@ func (c *Api) FetchOrderByReceipt(receiptId string) (map[string]interface{}, err
 		print(err)
 	}
 
-	resp, err := client.WithHeaders(c.MakeAuthHeader()).
-		WithBody(body).Post(c.ApiUrl + "v2/order/fetch/receipt")
+	resp, err := client.R().
+		SetHeaders(c.MakeAuthHeader()).
+		SetBody(body).
+		Post(c.ApiUrl + "v2/order/fetch/receipt")
 
 	if err != nil {
 		print(err)
 		return nil, err
 	}
 
-	bodyMap, err := resp.BodyMap()
+	var bodyMap map[string]interface{}
+	err = json.Unmarshal(resp.Body(), &bodyMap)
 	if err != nil {
 		print(err)
 		return nil, err
@@ -334,6 +345,7 @@ func (c *Api) MakeAuthHeader() map[string]string {
 	authString = base64.StdEncoding.EncodeToString([]byte(authString))
 
 	return map[string]string{
+		"User-Agent":    c.UserAgent,
 		"Content-Type":  "application/json",
 		"Authorization": "Basic " + authString,
 	}
@@ -341,7 +353,7 @@ func (c *Api) MakeAuthHeader() map[string]string {
 
 func (c *Api) ValidateVPA(vpa string) (map[string]interface{}, error) {
 
-	client := request.New()
+	client := resty.New()
 
 	requestBody := map[string]interface{}{
 		"key": c.ApiKey,
@@ -353,14 +365,15 @@ func (c *Api) ValidateVPA(vpa string) (map[string]interface{}, error) {
 		print(err)
 	}
 
-	resp, err := client.WithHeaders(c.MakeAuthHeader()).WithBody(body).Post(c.ApiUrl + "v1/info/vpa")
+	resp, err := client.R().SetHeaders(c.MakeAuthHeader()).SetBody(body).Post(c.ApiUrl + "v2/info/vpa")
 
 	if err != nil {
 		print(err)
 		return nil, err
 	}
 
-	bodyMap, err := resp.BodyMap()
+	var bodyMap map[string]interface{}
+	err = json.Unmarshal(resp.Body(), &bodyMap)
 	if err != nil {
 		print(err)
 		return nil, err
@@ -377,7 +390,7 @@ func (c *Api) ValidateVPA(vpa string) (map[string]interface{}, error) {
 
 func (c *Api) ValidateCard(bin string) (map[string]interface{}, error) {
 
-	client := request.New()
+	client := resty.New()
 
 	requestBody := map[string]interface{}{
 		"key": c.ApiKey,
@@ -389,14 +402,15 @@ func (c *Api) ValidateCard(bin string) (map[string]interface{}, error) {
 		print(err)
 	}
 
-	resp, err := client.WithHeaders(c.MakeAuthHeader()).WithBody(body).Post(c.ApiUrl + "v1/info/bin")
+	resp, err := client.R().SetHeaders(c.MakeAuthHeader()).SetBody(body).Post(c.ApiUrl + "v2/info/bin")
 
 	if err != nil {
 		print(err)
 		return nil, err
 	}
 
-	bodyMap, err := resp.BodyMap()
+	var bodyMap map[string]interface{}
+	err = json.Unmarshal(resp.Body(), &bodyMap)
 	if err != nil {
 		print(err)
 		return nil, err
@@ -413,7 +427,7 @@ func (c *Api) ValidateCard(bin string) (map[string]interface{}, error) {
 
 func (c *Api) ProcessOrder(orderId string, paymentMethod string, paymentCode string, paymentData PaymentData, device string) (map[string]interface{}, error) {
 
-	client := request.New()
+	client := resty.New()
 
 	requestBody := map[string]interface{}{
 		"key":      c.ApiKey,
@@ -454,16 +468,17 @@ func (c *Api) ProcessOrder(orderId string, paymentMethod string, paymentCode str
 		print(err)
 	}
 
-	resp, err := client.WithHeaders(map[string]string{
+	resp, err := client.R().SetHeaders(map[string]string{
 		"Content-Type": "application/json",
-	}).WithBody(body).Post(c.ApiUrl + "v1/order/process")
+	}).SetBody(body).Post(c.ApiUrl + "v1/order/process")
 
 	if err != nil {
 		print(err)
 		return nil, err
 	}
 
-	bodyMap, err := resp.BodyMap()
+	var bodyMap map[string]interface{}
+	err = json.Unmarshal(resp.Body(), &bodyMap)
 	if err != nil {
 		print(err)
 		return nil, err

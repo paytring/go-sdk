@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var apiKey = "test_key"
-var apiSecret = "test_secret"
+var apiKey = ""
+var apiSecret = ""
 
 func TestCreateOrder(t *testing.T) {
 
