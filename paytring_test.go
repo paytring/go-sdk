@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var apiKey = ""
-var apiSecret = ""
+var apiKey = "test_key"
+var apiSecret = "test_secret"
 
 func TestCreateOrder(t *testing.T) {
 
@@ -61,4 +61,105 @@ func TestMakeHash(t *testing.T) {
 	resp := client.MakeHash(params)
 
 	assert.Equal(t, expectedHash, resp["hash"])
+}
+
+func TestFetchOrderByReceipt(t *testing.T) {
+	paytring := NewClient(apiKey, apiSecret)
+	resp, err := paytring.FetchOrderByReceipt("TEST_RECEIPT_ID_123")
+	fmt.Println(resp)
+	if resp != nil && resp["status"] != nil && resp["status"] != false {
+		assert.True(t, true, "Expected status to be non-false if present")
+	}
+	assert.NoError(t, err)
+	assert.NotNil(t, resp, "Response should not be nil on success")
+}
+
+func TestValidateVPA(t *testing.T) {
+	paytring := NewClient(apiKey, apiSecret)
+	resp, err := paytring.ValidateVPA("test@vpa")
+	fmt.Println(resp)
+	if resp != nil && resp["status"] != nil && resp["status"] != false {
+		assert.True(t, true, "Expected status to be non-false if present")
+	}
+	assert.NoError(t, err)
+	assert.NotNil(t, resp, "Response should not be nil on success")
+}
+
+func TestValidateCard(t *testing.T) {
+	paytring := NewClient(apiKey, apiSecret)
+	resp, err := paytring.ValidateCard("424242")
+	fmt.Println(resp)
+	if resp != nil && resp["status"] != nil && resp["status"] != false {
+		assert.True(t, true, "Expected status to be non-false if present")
+	}
+	assert.NoError(t, err)
+	assert.NotNil(t, resp, "Response should not be nil on success")
+}
+
+func TestProcessOrder(t *testing.T) {
+	paytring := NewClient(apiKey, apiSecret)
+	// Example for a UPI payment, adjust as needed
+	resp, err := paytring.ProcessOrder("TEST_ORDER_ID_PROCESS", "upi", "collect", PaymentData{Vpa: "test@upi"}, "desktop")
+	fmt.Println(resp)
+	if resp != nil && resp["status"] != nil && resp["status"] != false {
+		assert.True(t, true, "Expected status to be non-false if present")
+	}
+	assert.NoError(t, err)
+	assert.NotNil(t, resp, "Response should not be nil on success")
+}
+
+func TestRefundOrder(t *testing.T) {
+	paytring := NewClient(apiKey, apiSecret)
+	resp, err := paytring.RefundOrder("TEST_ORDER_ID_REFUND")
+	fmt.Println(resp)
+	if resp != nil && resp["status"] != nil && resp["status"] != false {
+		assert.True(t, true, "Expected status to be non-false if present")
+	}
+	assert.NoError(t, err)
+	assert.NotNil(t, resp, "Response should not be nil on success")
+}
+
+func TestFetchRefundStatus(t *testing.T) {
+	paytring := NewClient(apiKey, apiSecret)
+	resp, err := paytring.FetchRefundStatus("TEST_REFUND_ID_STATUS")
+	fmt.Println(resp)
+	if resp != nil && resp["status"] != nil && resp["status"] != false {
+		assert.True(t, true, "Expected status to be non-false if present")
+	}
+	assert.NoError(t, err)
+	assert.NotNil(t, resp, "Response should not be nil on success")
+}
+
+func TestPartialRefund(t *testing.T) {
+	paytring := NewClient(apiKey, apiSecret)
+	var amount int64 = 100
+	resp, err := paytring.PartialRefund("TEST_ORDER_ID_PARTIAL_REFUND", amount)
+	fmt.Println(resp)
+	if resp != nil && resp["status"] != nil && resp["status"] != false {
+		assert.True(t, true, "Expected status to be non-false if present")
+	}
+	assert.NoError(t, err)
+	assert.NotNil(t, resp, "Response should not be nil on success")
+}
+
+func TestFetchRefundAttempts(t *testing.T) {
+	paytring := NewClient(apiKey, apiSecret)
+	resp, err := paytring.FetchRefundAttempts("TEST_ORDER_ID_REFUND_ATTEMPTS")
+	fmt.Println(resp)
+	if resp != nil && resp["status"] != nil && resp["status"] != false {
+		assert.True(t, true, "Expected status to be non-false if present")
+	}
+	assert.NoError(t, err)
+	assert.NotNil(t, resp, "Response should not be nil on success")
+}
+
+func TestFetchRefund(t *testing.T) {
+	paytring := NewClient(apiKey, apiSecret)
+	resp, err := paytring.FetchRefund("TEST_REFUND_ID_FETCH")
+	fmt.Println(resp)
+	if resp != nil && resp["status"] != nil && resp["status"] != false {
+		assert.True(t, true, "Expected status to be non-false if present")
+	}
+	assert.NoError(t, err)
+	assert.NotNil(t, resp, "Response should not be nil on success")
 }

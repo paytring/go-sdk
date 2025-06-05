@@ -18,6 +18,7 @@ func NewClient(apiKey string, apiSecret string) *Api {
 		ApiSecret: apiSecret,
 		ApiUrl:    "https://api.paytring.com/api/",
 		UserAgent: "paytring-go-sdk/0",
+		http:      resty.New(),
 	}
 }
 
@@ -26,6 +27,7 @@ type Api struct {
 	ApiSecret string
 	ApiUrl    string
 	UserAgent string
+	http      *resty.Client
 }
 
 type Customer struct {
@@ -129,9 +131,6 @@ func (c *Api) CreateOrder(
 			splitSettlement = v
 		}
 	}
-
-	client := resty.New()
-
 	requestBody := map[string]interface{}{
 		"key":          c.ApiKey,
 		"receipt_id":   receiptId,
@@ -228,11 +227,10 @@ func (c *Api) CreateOrder(
 
 	body, err := json.Marshal(requestBody)
 	if err != nil {
-		print(err)
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal request body for CreateOrder: %w", err)
 	}
 
-	resp, err := client.R().
+	resp, err := c.http.R().
 		SetHeaders(c.MakeAuthHeader()).
 		SetBody(body).
 		Post(c.ApiUrl + "v2/order/create")
@@ -260,8 +258,6 @@ func (c *Api) CreateOrder(
 
 func (c *Api) FetchOrder(orderId string) (map[string]interface{}, error) {
 
-	client := resty.New()
-
 	requestBody := map[string]interface{}{
 		"key":  c.ApiKey,
 		"id":   orderId,
@@ -270,10 +266,10 @@ func (c *Api) FetchOrder(orderId string) (map[string]interface{}, error) {
 
 	body, err := json.Marshal(requestBody)
 	if err != nil {
-		print(err)
+		return nil, fmt.Errorf("failed to marshal request body for FetchOrder: %w", err)
 	}
 
-	resp, err := client.R().
+	resp, err := c.http.R().
 		SetHeaders(c.MakeAuthHeader()).
 		SetBody(body).
 		Post(c.ApiUrl + "v2/order/fetch")
@@ -301,8 +297,6 @@ func (c *Api) FetchOrder(orderId string) (map[string]interface{}, error) {
 
 func (c *Api) FetchOrderByReceipt(receiptId string) (map[string]interface{}, error) {
 
-	client := resty.New()
-
 	requestBody := map[string]interface{}{
 		"key": c.ApiKey,
 		"id":  receiptId,
@@ -310,10 +304,10 @@ func (c *Api) FetchOrderByReceipt(receiptId string) (map[string]interface{}, err
 
 	body, err := json.Marshal(c.MakeHash(requestBody))
 	if err != nil {
-		print(err)
+		return nil, fmt.Errorf("failed to marshal request body for FetchOrderByReceipt: %w", err)
 	}
 
-	resp, err := client.R().
+	resp, err := c.http.R().
 		SetHeaders(c.MakeAuthHeader()).
 		SetBody(body).
 		Post(c.ApiUrl + "v2/order/fetch/receipt")
@@ -353,8 +347,6 @@ func (c *Api) MakeAuthHeader() map[string]string {
 
 func (c *Api) ValidateVPA(vpa string) (map[string]interface{}, error) {
 
-	client := resty.New()
-
 	requestBody := map[string]interface{}{
 		"key": c.ApiKey,
 		"vpa": vpa,
@@ -362,10 +354,10 @@ func (c *Api) ValidateVPA(vpa string) (map[string]interface{}, error) {
 
 	body, err := json.Marshal(c.MakeHash(requestBody))
 	if err != nil {
-		print(err)
+		return nil, fmt.Errorf("failed to marshal request body for ValidateVPA: %w", err)
 	}
 
-	resp, err := client.R().SetHeaders(c.MakeAuthHeader()).SetBody(body).Post(c.ApiUrl + "v2/info/vpa")
+	resp, err := c.http.R().SetHeaders(c.MakeAuthHeader()).SetBody(body).Post(c.ApiUrl + "v1/info/vpa")
 
 	if err != nil {
 		print(err)
@@ -390,8 +382,6 @@ func (c *Api) ValidateVPA(vpa string) (map[string]interface{}, error) {
 
 func (c *Api) ValidateCard(bin string) (map[string]interface{}, error) {
 
-	client := resty.New()
-
 	requestBody := map[string]interface{}{
 		"key": c.ApiKey,
 		"bin": bin,
@@ -399,10 +389,10 @@ func (c *Api) ValidateCard(bin string) (map[string]interface{}, error) {
 
 	body, err := json.Marshal(c.MakeHash(requestBody))
 	if err != nil {
-		print(err)
+		return nil, fmt.Errorf("failed to marshal request body for ValidateCard: %w", err)
 	}
 
-	resp, err := client.R().SetHeaders(c.MakeAuthHeader()).SetBody(body).Post(c.ApiUrl + "v2/info/bin")
+	resp, err := c.http.R().SetHeaders(c.MakeAuthHeader()).SetBody(body).Post(c.ApiUrl + "v1/info/bin")
 
 	if err != nil {
 		print(err)
@@ -426,8 +416,6 @@ func (c *Api) ValidateCard(bin string) (map[string]interface{}, error) {
 }
 
 func (c *Api) ProcessOrder(orderId string, paymentMethod string, paymentCode string, paymentData PaymentData, device string) (map[string]interface{}, error) {
-
-	client := resty.New()
 
 	requestBody := map[string]interface{}{
 		"key":      c.ApiKey,
@@ -465,11 +453,12 @@ func (c *Api) ProcessOrder(orderId string, paymentMethod string, paymentCode str
 
 	body, err := json.Marshal(c.MakeHash(requestBody))
 	if err != nil {
-		print(err)
+		return nil, fmt.Errorf("failed to marshal request body for ProcessOrder: %w", err)
 	}
 
-	resp, err := client.R().SetHeaders(map[string]string{
+	resp, err := c.http.R().SetHeaders(map[string]string{
 		"Content-Type": "application/json",
+		"User-Agent":   c.UserAgent, // Added User-Agent consistent with MakeAuthHeader
 	}).SetBody(body).Post(c.ApiUrl + "v1/order/process")
 
 	if err != nil {
@@ -493,7 +482,153 @@ func (c *Api) ProcessOrder(orderId string, paymentMethod string, paymentCode str
 	return response, nil
 }
 
-// only applicable for v2 apis
+func (c *Api) RefundOrder(orderID string) (map[string]interface{}, error) {
+	requestBody := map[string]interface{}{
+		"key":  c.ApiKey,
+		"id":   orderID,
+		"hash": "null",
+	}
+
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body for RefundOrder: %w", err)
+	}
+
+	resp, err := c.http.R().
+		SetHeaders(c.MakeAuthHeader()).
+		SetBody(body).
+		Post(c.ApiUrl + "v2/order/refund")
+
+	if err != nil {
+		return nil, fmt.Errorf("RefundOrder request failed: %w", err)
+	}
+
+	var bodyMap map[string]interface{}
+	if err := json.Unmarshal(resp.Body(), &bodyMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response body for RefundOrder: %w", err)
+	}
+
+	return c.HandleResponse(bodyMap)
+}
+
+func (c *Api) FetchRefundStatus(refundID string) (map[string]interface{}, error) {
+	requestBody := map[string]interface{}{
+		"key":  c.ApiKey,
+		"id":   refundID,
+		"hash": "null",
+	}
+
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body for FetchRefundStatus: %w", err)
+	}
+
+	resp, err := c.http.R().
+		SetHeaders(c.MakeAuthHeader()).
+		SetBody(body).
+		Post(c.ApiUrl + "v2/order/refund/fetch")
+
+	if err != nil {
+		return nil, fmt.Errorf("FetchRefundStatus request failed: %w", err)
+	}
+
+	var bodyMap map[string]interface{}
+	if err := json.Unmarshal(resp.Body(), &bodyMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response body for FetchRefundStatus: %w", err)
+	}
+
+	return c.HandleResponse(bodyMap)
+}
+
+func (c *Api) PartialRefund(orderID string, amount int64) (map[string]interface{}, error) {
+	requestPayload := map[string]interface{}{
+		"key":    c.ApiKey,
+		"id":     orderID,
+		"amount": strconv.FormatInt(amount, 10), // Amount as string for hashing consistency
+	}
+
+	hashedPayload := c.MakeHash(requestPayload) // MakeHash will add the "hash" field
+
+	body, err := json.Marshal(hashedPayload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body for PartialRefund: %w", err)
+	}
+
+	resp, err := c.http.R().
+		SetHeaders(c.MakeAuthHeader()).
+		SetBody(body).
+		Post(c.ApiUrl + "v2/order/refund/partial")
+
+	if err != nil {
+		return nil, fmt.Errorf("PartialRefund request failed: %w", err)
+	}
+
+	var bodyMap map[string]interface{}
+	if err := json.Unmarshal(resp.Body(), &bodyMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response body for PartialRefund: %w", err)
+	}
+
+	return c.HandleResponse(bodyMap)
+}
+
+func (c *Api) FetchRefundAttempts(orderID string) (map[string]interface{}, error) {
+	requestBody := map[string]interface{}{
+		"key":      c.ApiKey,
+		"order_id": orderID,
+		"hash":     "null",
+	}
+
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body for FetchRefundAttempts: %w", err)
+	}
+
+	resp, err := c.http.R().
+		SetHeaders(c.MakeAuthHeader()).
+		SetBody(body).
+		Post(c.ApiUrl + "v2/order/refund/attempts")
+
+	if err != nil {
+		return nil, fmt.Errorf("FetchRefundAttempts request failed: %w", err)
+	}
+
+	var bodyMap map[string]interface{}
+	if err := json.Unmarshal(resp.Body(), &bodyMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response body for FetchRefundAttempts: %w", err)
+	}
+
+	return c.HandleResponse(bodyMap)
+}
+
+func (c *Api) FetchRefund(refundID string) (map[string]interface{}, error) {
+	requestBody := map[string]interface{}{
+		"key":  c.ApiKey,
+		"id":   refundID,
+		"hash": "null",
+	}
+
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body for FetchRefund: %w", err)
+	}
+
+	resp, err := c.http.R().
+		SetHeaders(c.MakeAuthHeader()).
+		SetBody(body).
+		Post(c.ApiUrl + "v2/order/refund/fetch")
+
+	if err != nil {
+		return nil, fmt.Errorf("FetchRefund request failed: %w", err)
+	}
+
+	var bodyMap map[string]interface{}
+	if err := json.Unmarshal(resp.Body(), &bodyMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response body for FetchRefund: %w", err)
+	}
+
+	return c.HandleResponse(bodyMap)
+}
+
 func (c *Api) MakeHash(params map[string]interface{}) map[string]interface{} {
 
 	valueString := ""
