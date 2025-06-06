@@ -13,20 +13,22 @@ import (
 
 func NewClient(apiKey string, apiSecret string) *Api {
 	return &Api{
-		ApiKey:    apiKey,
-		ApiSecret: apiSecret,
-		ApiUrl:    "https://api.paytring.com/api/",
-		UserAgent: "paytring-go-sdk/0",
-		http:      resty.New(),
+		ApiKey:        apiKey,
+		ApiSecret:     apiSecret,
+		ApiUrl:        "https://api.paytring.com/api/",
+		UserAgent:     "paytring-go-sdk/0",
+		http:          resty.New(),
+		CustomHeaders: map[string]string{},
 	}
 }
 
 type Api struct {
-	ApiKey    string
-	ApiSecret string
-	ApiUrl    string
-	UserAgent string
-	http      *resty.Client
+	ApiKey        string
+	ApiSecret     string
+	ApiUrl        string
+	UserAgent     string
+	http          *resty.Client
+	CustomHeaders map[string]string
 }
 
 type Customer struct {
@@ -99,16 +101,36 @@ type PaymentData struct {
 	HolderName  string
 }
 
+func (c *Api) SetCustomHeaders(headers map[string]string) *Api {
+
+	if c.CustomHeaders == nil {
+		c.CustomHeaders = make(map[string]string)
+	}
+
+	for key, value := range headers {
+		c.CustomHeaders[key] = value
+	}
+
+	for key, value := range c.CustomHeaders {
+		c.http.SetHeader(key, value)
+	}
+
+	return c
+
+}
+
 func (c *Api) MakeAuthHeader() map[string]string {
 
 	authString := c.ApiKey + ":" + c.ApiSecret
 	authString = base64.StdEncoding.EncodeToString([]byte(authString))
 
-	return map[string]string{
+	headers := map[string]string{
 		"User-Agent":    c.UserAgent,
 		"Content-Type":  "application/json",
 		"Authorization": "Basic " + authString,
 	}
+
+	return headers
 }
 
 func (c *Api) MakeHash(params map[string]interface{}) map[string]interface{} {
