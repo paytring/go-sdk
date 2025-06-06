@@ -87,7 +87,7 @@ func TestValidateVPA(t *testing.T) {
 
 func TestValidateCard(t *testing.T) {
 	paytring := NewClient(apiKey, apiSecret)
-	resp, err := paytring.ValidateCard("424242")
+	resp, err := paytring.ValidateCard("418730")
 	fmt.Println(resp)
 	if resp != nil && resp["status"] != nil && resp["status"] != false {
 		assert.True(t, true, "Expected status to be non-false if present")

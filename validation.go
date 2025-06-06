@@ -43,8 +43,8 @@ func (c *Api) ValidateVPA(vpa string) (map[string]interface{}, error) {
 func (c *Api) ValidateCard(bin string) (map[string]interface{}, error) {
 
 	requestBody := map[string]interface{}{
-		"key": c.ApiKey,
-		"bin": bin,
+		"key":      c.ApiKey,
+		"bin_code": bin,
 	}
 
 	body, err := json.Marshal(c.MakeHash(requestBody))
@@ -52,7 +52,7 @@ func (c *Api) ValidateCard(bin string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("failed to marshal request body for ValidateCard: %w", err)
 	}
 
-	resp, err := c.http.R().SetHeaders(c.MakeAuthHeader()).SetBody(body).Post(c.ApiUrl + "v1/info/bin")
+	resp, err := c.http.R().SetHeaders(c.MakeAuthHeader()).SetBody(body).Post(c.ApiUrl + "v1/health/bin")
 
 	if err != nil {
 		print(err)
