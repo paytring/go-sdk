@@ -34,7 +34,7 @@ func TestCreateOrder(t *testing.T) {
 func TestFetchOrder(t *testing.T) {
 
 	paytring := NewClient(apiKey, apiSecret)
-	resp, err := paytring.FetchOrder("503279383566355092")
+	resp, err := paytring.FetchOrder("771606428862383868", "advance")
 	if resp["status"] != false {
 		assert.True(t, true)
 	}
@@ -162,4 +162,14 @@ func TestFetchRefund(t *testing.T) {
 	}
 	assert.NoError(t, err)
 	assert.NotNil(t, resp, "Response should not be nil on success")
+}
+func TestCurrencyConversion(t *testing.T) {
+
+	paytring := NewClient(apiKey, apiSecret)
+	resp, err := paytring.CurrencyConversion("USD", "INR")
+	if resp["status"] != false {
+		assert.True(t, true)
+	}
+	assert.NoError(t, err)
+
 }

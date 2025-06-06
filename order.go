@@ -162,12 +162,13 @@ func (c *Api) CreateOrder(
 	return response, nil
 }
 
-func (c *Api) FetchOrder(orderId string) (map[string]interface{}, error) {
+func (c *Api) FetchOrder(orderId string, fetchType string) (map[string]interface{}, error) {
 
 	requestBody := map[string]interface{}{
-		"key":  c.ApiKey,
-		"id":   orderId,
-		"hash": "none",
+		"key":        c.ApiKey,
+		"id":         orderId,
+		"hash":       "none",
+		"fetch_type": fetchType, //advance, normal
 	}
 
 	body, err := json.Marshal(requestBody)
