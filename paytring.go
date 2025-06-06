@@ -177,7 +177,7 @@ func (c *Api) HandleResponse(response map[string]interface{}) (map[string]interf
 		return response, nil
 	}
 	message := extractErrorMessage(response["error"])
-	return nil, fmt.Errorf(message)
+	return nil, fmt.Errorf("%s", message)
 }
 
 func extractErrorMessage(errors interface{}) string {
