@@ -306,3 +306,79 @@ func (c *Api) ProcessOrder(orderId string, paymentMethod string, paymentCode str
 
 	return response, nil
 }
+func (c *Api) CancelOrder(orderId string) (map[string]interface{}, error) {
+
+	requestBody := map[string]interface{}{
+		"key": c.ApiKey,
+		"id":  orderId,
+	}
+
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body for CancelOrder: %w", err)
+	}
+
+	resp, err := c.http.R().
+		SetHeaders(c.MakeAuthHeader()).
+		SetBody(body).
+		Post(c.ApiUrl + "v2/order/cancel")
+
+	if err != nil {
+		print(err)
+		return nil, err
+	}
+
+	var bodyMap map[string]interface{}
+	err = json.Unmarshal(resp.Body(), &bodyMap)
+	if err != nil {
+		print(err)
+		return nil, err
+	}
+
+	response, err := c.HandleResponse(bodyMap)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+func (c *Api) CaptureOrder(orderId string) (map[string]interface{}, error) {
+
+	requestBody := map[string]interface{}{
+		"key": c.ApiKey,
+		"id":  orderId,
+	}
+
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body for CaptureOrder: %w", err)
+	}
+
+	resp, err := c.http.R().
+		SetHeaders(c.MakeAuthHeader()).
+		SetBody(body).
+		Post(c.ApiUrl + "v2/order/capture")
+
+	if err != nil {
+		print(err)
+		return nil, err
+	}
+
+	var bodyMap map[string]interface{}
+	err = json.Unmarshal(resp.Body(), &bodyMap)
+	if err != nil {
+		print(err)
+		return nil, err
+	}
+	fmt.Println("raw body =", string(resp.Body()))
+
+	response, err := c.HandleResponse(bodyMap)
+
+	fmt.Println("response ", response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}

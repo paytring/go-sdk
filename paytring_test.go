@@ -173,3 +173,23 @@ func TestCurrencyConversion(t *testing.T) {
 	assert.NoError(t, err)
 
 }
+func TestCaptureOrder(t *testing.T) {
+	paytring := NewClient(apiKey, apiSecret)
+	resp, err := paytring.CaptureOrder("772677896533967081")
+	fmt.Println(resp)
+	if resp != nil && resp["status"] != nil && resp["status"] != false {
+		assert.True(t, true, "Expected status to be non-false if present")
+	}
+	assert.NoError(t, err)
+	assert.NotNil(t, resp, "Response should not be nil on success")
+}
+func TestCancelOrder(t *testing.T) {
+	paytring := NewClient(apiKey, apiSecret)
+	resp, err := paytring.CancelOrder("772666991739703525")
+	fmt.Println(resp)
+	if resp != nil && resp["status"] != nil && resp["status"] != false {
+		assert.True(t, true, "Expected status to be non-false if present")
+	}
+	assert.NoError(t, err)
+	assert.NotNil(t, resp, "Response should not be nil on success")
+}
